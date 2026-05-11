@@ -13,6 +13,7 @@ const PENTATONIC = [
 const CHORD = [261.63, 329.63, 392.00];
 
 let ctx = null;
+let unlocked = false;
 const noteIndexById = new Map();
 let noteCounter = 0;
 
@@ -24,19 +25,40 @@ function ensureContext() {
   return ctx;
 }
 
-export function resume() {
+// iOS keeps a freshly-created AudioContext in "suspended" until a user gesture
+// runs both resume() AND a real audio-graph operation. The "silent buffer kick"
+// reliably flips the context into "running" inside the gesture frame; without
+// it, the first scheduled oscillator is often dropped on iOS standalone PWAs.
+function unlockIfNeeded() {
   const c = ensureContext();
-  if (c && c.state === 'suspended') c.resume();
+  if (!c) return;
+  if (c.state === 'suspended') c.resume();
+  if (unlocked) return;
+  try {
+    const buf = c.createBuffer(1, 1, 22050);
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    src.connect(c.destination);
+    src.start(0);
+    unlocked = true;
+  } catch (e) {
+    // Older Safari may reject createBuffer with these args; nothing we can do.
+  }
+}
+
+export function resume() {
+  unlockIfNeeded();
 }
 
 export function playTouch(id) {
-  const c = ensureContext();
+  unlockIfNeeded();
+  const c = ctx;
   if (!c) return;
   if (!noteIndexById.has(id)) {
     noteIndexById.set(id, noteCounter++ % PENTATONIC.length);
   }
   const freq = PENTATONIC[noteIndexById.get(id)];
-  const t = c.currentTime;
+  const t = c.currentTime + 0.015;
   const osc = c.createOscillator();
   const env = c.createGain();
   osc.type = 'triangle';
@@ -50,11 +72,12 @@ export function playTouch(id) {
 }
 
 export function playPick() {
-  const c = ensureContext();
+  unlockIfNeeded();
+  const c = ctx;
   if (!c) return;
-  const t = c.currentTime;
+  const t0 = c.currentTime + 0.015;
   CHORD.forEach((freq, i) => {
-    const when = t + i * 0.04; // light strum
+    const when = t0 + i * 0.04;
     const osc = c.createOscillator();
     const env = c.createGain();
     osc.type = 'sine';

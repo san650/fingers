@@ -1,4 +1,4 @@
-const CACHE = 'fingers-v2';
+const CACHE = 'fingers-v3';
 
 const SHELL = [
   './',
