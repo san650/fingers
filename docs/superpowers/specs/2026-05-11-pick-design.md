@@ -124,7 +124,7 @@ const winnerId = ids[Math.floor(r * ids.length)];
 
 ### 7.1 Result lifetime guarantee
 
-The result is shown for **a minimum of 600 ms** even if all fingers lift immediately after the pick. Without this floor, a reflexive lift would dismiss the result before anyone could perceive it. Implementation: when entering `PICKED`, record `pickedAt`; a `pointerup` that would otherwise transition to `IDLE` is held until `now - pickedAt ≥ 600` (then it transitions; further releases during the hold are coalesced).
+The result is shown for **a minimum of 600 ms** even if all fingers lift immediately after the pick. Without this floor, a reflexive lift would dismiss the result before anyone could perceive it. Implementation: when entering `PICKED`, record `pickedAt`; a `pointerup` that would otherwise transition to `IDLE` is held until `now - pickedAt ≥ 600` (then it transitions; further releases during the hold are coalesced). New `pointerdown` events arriving during the hold update the rendered finger set per Section 5.2 but do not change the winner or affect the hold.
 
 ### 7.2 Winner indicator behavior
 
@@ -151,7 +151,7 @@ The result is shown for **a minimum of 600 ms** even if all fingers lift immedia
 - `start_url`: `"./"`
 - `scope`: `"./"`
 - `theme_color` / `background_color`: matched to the final visual design (placeholder values until frontend-design lands).
-- `icons`: a single entry referencing `icon.svg` (with `purpose: "any maskable"` if compatible with the final mark).
+- `icons`: a single entry referencing `icon.svg`. The `purpose: "any maskable"` flag is a checkpoint after the `frontend-design` pass — it is only set if the final mark survives the maskable safe zone. Scaffolding ships with `purpose: "any"` and the maskable upgrade is revisited once the final icon exists.
 
 ### 9.2 `sw.js`
 
